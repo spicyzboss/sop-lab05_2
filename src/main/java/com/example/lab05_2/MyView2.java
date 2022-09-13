@@ -2,57 +2,115 @@ package com.example.lab05_2;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 
 @Route("index2")
 public class MyView2 extends HorizontalLayout {
-    private TextField addWord, addSentence, goodSentence, badSentence;
-    private Button btnGood, btnBad, btnSentence, showSentence;
-    private ComboBox<String> goodSelect, badSelect;
+    private TextField addWordField, addSentenceField;
+    private TextArea goodSentenceArea, badSentenceArea;
+    private Button addGoodWordBtn, addBadWordBtn, addSentenceBtn, showSentenceBtn;
+    private ComboBox<String> goodWordBox, badWordBox;
 
     public MyView2() {
-        addWord = new TextField("Add Word");
-        btnGood = new Button("Add Good Word");
-        btnBad = new Button("Add Bad Word");
+        VerticalLayout leftLayout = new VerticalLayout();
+        addWordField = new TextField("Add Word");
+        addGoodWordBtn = new Button("Add Good Word");
+        addGoodWordBtn.addClickListener(e -> {
+            List<String> v = WebClient
+                    .create()
+                    .post()
+                    .uri("http://localhost:8080/addGood")
+                    .body(Mono.just(addWordField.getValue()), String.class)
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .block();
 
-        goodSelect = new ComboBox();
-        goodSelect.setLabel("Good Words");
-        goodSelect.setItems(new ArrayList<String>(Arrays.asList("Boom", "Boss", "Poom")));
-        goodSelect.setAllowCustomValue(true);
-        badSelect = new ComboBox();
-        badSelect.setLabel("Bad Words");
-        addSentence = new TextField("Add Sentence");
-        btnSentence = new Button("Add Sentence");
-        goodSentence = new TextField("Good Sentences");
-        badSentence = new TextField("Bad Sentences");
-        showSentence = new Button("Show Sentence");
+            this.goodWordBox.setItems(v);
+            new Notification("Insert " + this.addWordField.getValue() + " to Good Word Lists Complete.", 3000).open();
+            this.addWordField.setValue("");
+        });
+        addBadWordBtn = new Button("Add Bad Word");
+        addBadWordBtn.addClickListener(e -> {
+            List<String> v = WebClient
+                    .create()
+                    .post()
+                    .uri("http://localhost:8080/addBad")
+                    .body(Mono.just(addWordField.getValue()), String.class)
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .block();
 
-        VerticalLayout v1 = new VerticalLayout();
-        VerticalLayout v2 = new VerticalLayout();
+            this.badWordBox.setItems(v);
+            new Notification("Insert " + this.addWordField.getValue() + " to Bad Word Lists Complete.", 3000).open();
+            this.addWordField.setValue("");
+        });
+        goodWordBox = new ComboBox("Good Words");
+        badWordBox = new ComboBox("Bad Words");
 
-        addWord.setWidth("100%");
-        btnGood.setWidth("100%");
-        btnBad.setWidth("100%");
-        goodSelect.setWidth("100%");
-        badSelect.setWidth("100%");
-        addSentence.setWidth("100%");
-        btnSentence.setWidth("100%");
-        goodSentence.setWidth("100%");
-        badSentence.setWidth("100%");
-        showSentence.setWidth("100%");
+        leftLayout.add(addWordField, addGoodWordBtn, addBadWordBtn, goodWordBox, badWordBox);
 
-        v1.add(addWord, btnGood, btnBad, goodSelect, badSelect);
-        v2.add(addSentence, btnSentence, goodSentence, badSentence, showSentence);
+        VerticalLayout rightLayout = new VerticalLayout();
+        addSentenceField = new TextField("Add Sentence");
+        addSentenceBtn = new Button("Add Sentence");
+        addSentenceBtn.addClickListener(e -> {
+            String o = WebClient
+                .create()
+                .post()
+                .uri("http://localhost:8080/proof")
+                .body(Mono.just(addSentenceField.getValue()), String.class)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
 
-        v1.setWidth("100%");
-        v2.setSizeFull();
-        this.add(v1, v2);
+            this.addSentenceField.setValue("");
+            if (o.length() > 0) {
+                new Notification("Found " + o + " word.", 3000).open();
+            } else {
+                new Notification("Not Found in any Word Lists.", 3000).open();
+            }
+        });
+        goodSentenceArea = new TextArea("Good Sentences");
+        badSentenceArea = new TextArea("Bad Sentences");
+        showSentenceBtn = new Button("Show Sentence");
+        showSentenceBtn.addClickListener(e -> {
+            Sentence o = WebClient
+                    .create()
+                    .get()
+                    .uri("http://localhost:8080/getSentence")
+                    .retrieve()
+                    .bodyToMono(Sentence.class)
+                    .block();
+
+            this.badSentenceArea.setValue(o.badSentences.toString());
+            this.goodSentenceArea.setValue(o.goodSentences.toString());
+        });
+
+        rightLayout.add(addSentenceField, addSentenceBtn, goodSentenceArea, badSentenceArea, showSentenceBtn);
+
+        leftLayout.setSizeFull();
+        addWordField.setWidth("100%");
+        addGoodWordBtn.setWidth("100%");
+        addBadWordBtn.setWidth("100%");
+        goodWordBox.setWidth("100%");
+        badWordBox.setWidth("100%");
+
+        rightLayout.setSizeFull();
+        addSentenceField.setWidth("100%");
+        addSentenceBtn.setWidth("100%");
+        goodSentenceArea.setWidth("100%");
+        badSentenceArea.setWidth("100%");
+        showSentenceBtn.setWidth("100%");
+
+        this.add(leftLayout, rightLayout);
         this.setSizeFull();
     }
 }

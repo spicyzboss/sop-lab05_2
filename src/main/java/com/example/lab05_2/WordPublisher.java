@@ -2,9 +2,7 @@ package com.example.lab05_2;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 
@@ -23,8 +21,8 @@ public class WordPublisher {
         this.words.badWords.add("olo");
     }
 
-    @GetMapping("/addBad/{word}")
-    public ArrayList<String> addBadWord(@PathVariable("word") String s) {
+    @PostMapping("/addBad")
+    public ArrayList<String> addBadWord(@RequestBody String s) {
         this.words.badWords.add(s);
         return this.words.badWords;
     }
@@ -35,8 +33,8 @@ public class WordPublisher {
         return this.words.badWords;
     }
 
-    @GetMapping("/addGood/{word}")
-    public ArrayList<String> addGoodWord(@PathVariable("word") String s) {
+    @PostMapping("/addGood")
+    public ArrayList<String> addGoodWord(@RequestBody String s) {
         this.words.goodWords.add(s);
         return this.words.goodWords;
     }
@@ -47,8 +45,8 @@ public class WordPublisher {
         return this.words.goodWords;
     }
 
-    @GetMapping("/proof/{sentence}")
-    public void proofSentence(@PathVariable("sentence") String s) {
+    @PostMapping("/proof")
+    public String proofSentence(@RequestBody String s) {
         boolean b = false;
         boolean g = false;
 
@@ -59,15 +57,19 @@ public class WordPublisher {
 
         if (b && g) {
             rabbit.convertAndSend("Fanout", "", s);
+            return "good & bad";
         } else if (b) {
             rabbit.convertAndSend("Direct", "bad", s);
+            return "bad";
         } else if (g) {
             rabbit.convertAndSend("Direct", "good", s);
+            return "good";
         }
+        return "";
     }
 
-//    @GetMapping("/getSentence")
-//    public Sentence getSentence() {
-//        return ;
-//    }
+    @GetMapping("/getSentence")
+    public Sentence getSentence() {
+        return (Sentence) (rabbit.convertSendAndReceive("Direct", "get", ""));
+    }
 }
